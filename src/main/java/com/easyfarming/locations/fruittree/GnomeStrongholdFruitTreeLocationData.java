@@ -1,0 +1,81 @@
+package com.easyfarming.locations.fruittree;
+
+import com.easyfarming.EasyFarmingConfig;
+import com.easyfarming.ItemRequirement;
+import com.easyfarming.core.Location;
+import com.easyfarming.core.Teleport;
+import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.ItemID;
+
+import java.util.Collections;
+
+/**
+ * Location definition for Gnome Stronghold Fruit Tree patch.
+ */
+public class GnomeStrongholdFruitTreeLocationData {
+    
+    private static final WorldPoint GNOME_STRONGHOLD_FRUIT_TREE_PATCH_POINT = new WorldPoint(2475, 3446, 0);
+    
+    /**
+     * Creates Location for Gnome Stronghold Fruit Tree patch.
+     * @param config The EasyFarmingConfig instance
+     * @return A Location instance for Gnome Stronghold Fruit Tree patch
+     */
+    public static Location create(EasyFarmingConfig config) {
+        Location location = new Location(
+            EasyFarmingConfig::enumFruitTreeGnomeStrongholdTeleport,
+            config,
+            "Gnome Stronghold",
+            false // farmLimps
+        );
+        
+        // Royal seed pod
+        location.addTeleportOption(new Teleport(
+            "Royal_seed_pod",
+            Teleport.Category.ITEM,
+            "Teleport to Gnome Stronghold with Royal seed pod and run south to the fruit tree patch.",
+            ItemID.MM2_ROYAL_SEED_POD,
+            "",
+            0,
+            0,
+            9782,
+            GNOME_STRONGHOLD_FRUIT_TREE_PATCH_POINT,
+            Collections.singletonList(
+                new ItemRequirement(ItemID.MM2_ROYAL_SEED_POD, 1)
+            )
+        ));
+        
+        // Spirit Tree
+        location.addTeleportOption(new Teleport(
+            "Spirit_Tree",
+            Teleport.Category.SPIRIT_TREE,
+            "Teleport to Gnome Stronghold via a Spirit Tree.",
+            0,
+            "",
+            187,
+            3,
+            9781,
+            GNOME_STRONGHOLD_FRUIT_TREE_PATCH_POINT,
+            Collections.emptyList()
+        ));
+
+        // Slayer Ring (teleport to Stronghold Slayer Cave, run to fruit tree)
+        location.addTeleportOption(new Teleport(
+            "Slayer_Ring",
+            Teleport.Category.ITEM,
+            "Teleport to Stronghold Slayer Cave with Slayer Ring and run to the fruit tree patch.",
+            ItemID.SLAYER_RING_8,
+            "",
+            0,
+            0,
+            9782,
+            GNOME_STRONGHOLD_FRUIT_TREE_PATCH_POINT,
+            Collections.singletonList(
+                new ItemRequirement(ItemID.SLAYER_RING_8, 1)
+            )
+        ));
+
+        return location;
+    }
+}
+
