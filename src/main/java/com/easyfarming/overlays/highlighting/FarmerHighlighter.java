@@ -16,14 +16,14 @@ public class FarmerHighlighter {
     private final Client client;
     private final NPCHighlighter npcHighlighter;
     private final WidgetHighlighter widgetHighlighter;
-    
+
     @Inject
     public FarmerHighlighter(Client client, NPCHighlighter npcHighlighter, WidgetHighlighter widgetHighlighter) {
         this.client = client;
         this.npcHighlighter = npcHighlighter;
         this.widgetHighlighter = widgetHighlighter;
     }
-    
+
     /**
      * Highlights farmers by name and their interface if open.
      */
@@ -37,38 +37,39 @@ public class FarmerHighlighter {
             widgetHighlighter.highlightDynamicComponent(graphics, widget, 1);
         }
     }
-    
+
     /**
      * Highlights tree farmers.
      */
     public void highlightTreeFarmers(Graphics2D graphics) {
         highlightFarmers(graphics, Arrays.asList(
-            "Alain",         // taverley
-            "Fayeth",        // Lumbridge
-            "Heskel",        // Falador
-            "Prissy Scilla", // Gnome Stronghold
-            "Rosie",         // Farming Guild
-            "Treznor"        // Varrock
+                "Alain",         // taverley
+                "Fayeth",        // Lumbridge
+                "Heskel",        // Falador
+                "Prissy Scilla", // Gnome Stronghold
+                "Rosie",         // Farming Guild
+                "Treznor",       // Varrock
+                "Aub"            // Auburnvale
         ));
     }
-    
+
     /**
      * Highlights fruit tree farmers.
      */
     public void highlightFruitTreeFarmers(Graphics2D graphics) {
         highlightFarmers(graphics, Arrays.asList(
-            "Bolongo", // Gnome Stronghold
-            "Ellena",  // Catherby
-            "Garth",   // Brimhaven
-            "Gileth",  // Tree Gnome Village
-            "Liliwen", // Lletya
-            "Nikkie"   // Farming Guild
+                "Bolongo", // Gnome Stronghold
+                "Ellena",  // Catherby
+                "Garth",   // Brimhaven
+                "Gileth",  // Tree Gnome Village
+                "Liliwen", // Lletya
+                "Nikkie",  // Farming Guild
+                "Ehecatl"  // Kastori
         ));
     }
-    
+
     private boolean isInterfaceOpen(int groupId, int childId) {
         Widget widget = client.getWidget(groupId, childId);
         return widget != null && !widget.isHidden();
     }
 }
-

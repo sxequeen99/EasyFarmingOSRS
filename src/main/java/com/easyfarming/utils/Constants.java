@@ -131,11 +131,11 @@ public class Constants {
     ));
 
     public static final List<Integer> TREE_PATCH_IDS = Collections.unmodifiableList(Arrays.asList(
-            8389, 33732, 19147, 8391, 8388, 8390
+            8389, 33732, 19147, 8391, 8388, 8390, 56953 // ADDED AUBURNVALE
     ));
 
     public static final List<Integer> FRUIT_TREE_PATCH_IDS = Collections.unmodifiableList(Arrays.asList(
-            7964, 7965, 34007, 7962, 26579, 7963
+            7964, 7965, 34007, 7962, 26579, 7963, 56955 // ADDED KASTORI
     ));
 
     public static final List<Integer> HOPS_PATCH_IDS = Collections.unmodifiableList(Arrays.asList(
@@ -145,6 +145,8 @@ public class Constants {
     public static final List<Integer> BIRDHOUSE_PATCH_IDS = Collections.unmodifiableList(Arrays.asList(
             // The 4 Empty Spaces on Fossil Island
             30565, 30566, 30567, 30568,
+
+            30920,
 
             // Built Houses (Covers All Types: Empty, Seeded, and Full)
             30571, 30572, 30573, // Regular
@@ -434,4 +436,3 @@ public class Constants {
                 itemId == ItemID.HG_QUETZALWHISTLE_PERFECTED;
     }
 }
-

@@ -143,6 +143,7 @@ public class FarmingTeleportOverlay extends Overlay {
         plugin.clearLastMessage();
         navigationHandler.currentTeleportCase = 1;
         navigationHandler.isAtDestination = false;
+        navigationHandler.teleportHandled = false; // <--- NEW LOCK RESET
         if (currentLocationIndex >= customRunLocations.size()) removeOverlay();
     }
 
@@ -169,6 +170,7 @@ public class FarmingTeleportOverlay extends Overlay {
         farmingStepHandler.clearHintArrow();
         navigationHandler.currentTeleportCase = 1;
         navigationHandler.isAtDestination = false;
+        navigationHandler.teleportHandled = false; // <--- NEW LOCK RESET
 
         SwingUtilities.invokeLater(() -> { if (plugin.panel != null) plugin.panel.onCustomRunEnded(); });
     }
@@ -194,6 +196,7 @@ public class FarmingTeleportOverlay extends Overlay {
 
         navigationHandler.currentTeleportCase = 1;
         navigationHandler.isAtDestination = false;
+        navigationHandler.teleportHandled = false; // <--- NEW LOCK RESET
     }
 
     @Override

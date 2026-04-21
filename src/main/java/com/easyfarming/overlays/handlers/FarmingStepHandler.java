@@ -10,7 +10,6 @@ import net.runelite.api.Client;
 import net.runelite.api.GameObject;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ItemID;
-import net.runelite.api.VarPlayer;
 
 import javax.inject.Inject;
 import java.awt.*;
@@ -44,6 +43,12 @@ public class FarmingStepHandler {
     private boolean treePatchComposted = false;
     private boolean fruitTreePatchComposted = false;
     private boolean hopsPatchComposted = false;
+
+    // Birdhouse Transition Trackers (Now tracking the "Built" state to bypass loading screens)
+    private boolean vnBuilt = false;
+    private boolean vsBuilt = false;
+    private boolean mnBuilt = false;
+    private boolean msBuilt = false;
 
     private final AllotmentPatchState allotmentPatchState = new AllotmentPatchState();
 
@@ -175,7 +180,10 @@ public class FarmingStepHandler {
         if (locationName == null || !locationName.equals(activeLocationName)) return;
 
         Color leftColor = colorProvider.getLeftClickColorWithAlpha();
-        int varbitId = locationName.equals("Auburnvale") ? 4771 : (currentRegionId == 4922 ? 7905 : 4771);
+        int varbitId = 4771;
+        if (locationName.equals("Auburnvale")) varbitId = 4771;
+        else if (currentRegionId == 4922) varbitId = 7905;
+
         TreePatchChecker.PlantState state = TreePatchChecker.checkTreePatch(client, varbitId);
 
         switch (state) {
@@ -206,7 +214,12 @@ public class FarmingStepHandler {
         if (locationName == null || !locationName.equals(activeLocationName)) return;
 
         Color leftColor = colorProvider.getLeftClickColorWithAlpha();
-        int varbitId = locationName.equals("Kastori") ? 4772 : (currentRegionId == 4922 ? 7909 : 4771);
+
+        int varbitId = 4771;
+        if (locationName.equals("Kastori")) varbitId = 4772;
+        else if (currentRegionId == 4922) varbitId = 7909;
+        else if (locationName.equals("Gnome Stronghold")) varbitId = 4772;
+
         FruitTreePatchChecker.PlantState state = FruitTreePatchChecker.checkFruitTreePatch(client, varbitId);
 
         switch (state) {
@@ -214,9 +227,11 @@ public class FarmingStepHandler {
             case DEAD: plugin.addTextToInfoBox("Clear dead patch."); patchHighlighter.highlightFruitTreePatches(graphics, leftColor); break;
             case DISEASED: plugin.addTextToInfoBox("Prune / Cure tree."); patchHighlighter.highlightFruitTreePatches(graphics, leftColor); break;
             case REMOVE: plugin.addTextToInfoBox("Pay farmer to clear patch."); farmerHighlighter.highlightFruitTreeFarmers(graphics); break;
+            default:
             case WEEDS:
                 int val = client.getVarbitValue(varbitId);
                 if (val == 0 || val == 3) { plugin.addTextToInfoBox("Use Sapling."); itemHighlighter.highlightFruitTreeSapling(graphics); }
+                else if (val > 3 && val < 50) { plugin.addTextToInfoBox("Harvest Fruit / Clear patch."); patchHighlighter.highlightFruitTreePatches(graphics, leftColor); }
                 else { plugin.addTextToInfoBox("Rake patch."); patchHighlighter.highlightFruitTreePatches(graphics, leftColor); }
                 break;
             case PLANT: plugin.addTextToInfoBox("Use Sapling."); itemHighlighter.highlightFruitTreeSapling(graphics); break;
@@ -249,10 +264,52 @@ public class FarmingStepHandler {
 
     public void birdHouseSteps(Graphics2D graphics) {
         if (client.getLocalPlayer() == null) return;
+
         int regionId = client.getLocalPlayer().getWorldLocation().getRegionID();
-        if (regionId != 14908 && regionId != 14906 && regionId != 14652 && regionId != 14651) return;
-        int mmSouthState = client.getVarpValue(VarPlayer.BIRD_HOUSE_MEADOW_SOUTH);
-        if (regionId == 14651 && mmSouthState != 0 && mmSouthState % 3 == 0) birdHouseDone = true;
+        if (regionId != 14908 && regionId != 14906 && regionId != 14652 && regionId != 14651 && regionId != 14907) return;
+
+        Color leftColor = colorProvider.getLeftClickColorWithAlpha();
+
+        int vnState = client.getVarpValue(1628);
+        int vsState = client.getVarpValue(1629);
+        int mnState = client.getVarpValue(1626);
+        int msState = client.getVarpValue(1627);
+
+        // TRANSITION TRACKER: If it is built but unseeded (!= 0 and % 3 != 0), mark flag as true
+        if (vnState != 0 && vnState % 3 != 0) vnBuilt = true;
+        if (vsState != 0 && vsState % 3 != 0) vsBuilt = true;
+        if (mnState != 0 && mnState % 3 != 0) mnBuilt = true;
+        if (msState != 0 && msState % 3 != 0) msBuilt = true;
+
+        // DONE CHECK: Must have been built first, AND is now back to a multiple of 3 (Seeded)
+        boolean vnDone = vnBuilt && (vnState != 0 && vnState % 3 == 0);
+        boolean vsDone = vsBuilt && (vsState != 0 && vsState % 3 == 0);
+        boolean mnDone = mnBuilt && (mnState != 0 && mnState % 3 == 0);
+        boolean msDone = msBuilt && (msState != 0 && msState % 3 == 0);
+
+        boolean valleyDone = vnDone && vsDone;
+
+        if (!valleyDone) {
+            if (regionId == 14908 || regionId == 14907 || regionId == 14652 || regionId == 14651) {
+                plugin.addTextToInfoBox("Go to Verdant Valley.");
+            } else {
+                plugin.addTextToInfoBox("Complete Verdant Valley Birdhouses.");
+            }
+        } else if (!mnDone) {
+            if (regionId != 14652 && regionId != 14651) {
+                plugin.addTextToInfoBox("Go to Mushroom Meadow.");
+            } else {
+                plugin.addTextToInfoBox("Complete North Meadow Birdhouse.");
+            }
+        } else if (!msDone) {
+            plugin.addTextToInfoBox("Run south to final Birdhouse.");
+        } else {
+            birdHouseDone = true;
+            plugin.clearLastMessage();
+            return;
+        }
+
+        patchHighlighter.highlightBirdhousePatches(graphics, leftColor, vnDone, vsDone, mnDone, msDone);
     }
 
     private int getStandardHerbVarbit(int id) {
@@ -268,6 +325,13 @@ public class FarmingStepHandler {
     public void resetCompostStates() {
         herbPatchDone = flowerPatchDone = allotmentPatchDone = treePatchDone = fruitTreePatchDone = hopsPatchDone = birdHouseDone = false;
         herbPatchComposted = flowerPatchComposted = treePatchComposted = fruitTreePatchComposted = hopsPatchComposted = false;
+
+        // Reset the Birdhouse Transition Trackers for the next run
+        vnBuilt = false;
+        vsBuilt = false;
+        mnBuilt = false;
+        msBuilt = false;
+
         allotmentPatchState.reset();
     }
 
@@ -288,10 +352,11 @@ public class FarmingStepHandler {
     private String getFruitTreeLocationNameFromRegionId(int id) {
         if (id == 5167 || id == 5423) return "Kastori";
         if (id == 4922) return "Farming Guild";
-        if (id == 11317) return "Catherby";
+        if (id == 11317 || id == 11062) return "Catherby";
         if (id == 11058) return "Brimhaven";
         if (id == 9265) return "Lletya";
-        if (id == 9781 || id == 9777) return "Gnome Stronghold";
+        if (id == 9781) return "Gnome Stronghold";
+        if (id == 9777 || id == 9776 || id == 10033) return "Tree Gnome Village";
         return "Unknown";
     }
 
@@ -305,7 +370,7 @@ public class FarmingStepHandler {
     }
 
     private String getTreeLocationNameFromRegionId(int id) {
-        if (id == 5427 || id == 5684) return "Auburnvale";
+        if (id == 5427 || id == 5684 || id == 5428 || id == 5683) return "Auburnvale";
         if (id == 11828) return "Falador";
         if (id == 4922) return "Farming Guild";
         if (id == 12594 || id == 12850) return "Lumbridge";

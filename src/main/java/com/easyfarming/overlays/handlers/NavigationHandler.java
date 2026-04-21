@@ -18,8 +18,6 @@ import net.runelite.api.widgets.Widget;
 
 import javax.inject.Inject;
 import java.awt.*;
-import java.util.List;
-import java.util.Objects;
 
 public class NavigationHandler {
     private final Client client;
@@ -40,6 +38,7 @@ public class NavigationHandler {
 
     public int currentTeleportCase = 1;
     public boolean isAtDestination = false;
+    public boolean teleportHandled = false; // The State Lock variable
 
     @Inject
     public NavigationHandler(Client client, EasyFarmingPlugin plugin, EasyFarmingConfig config,
@@ -95,63 +94,22 @@ public class NavigationHandler {
 
     public boolean shouldProceedToFarming(Location location, Teleport teleport) {
         Player localPlayer = client.getLocalPlayer();
-        if (localPlayer == null) return false;
+        if (localPlayer == null || teleport == null) return false;
 
-        // Grab currentRegionId early so we can pass it to the override
+        WorldPoint targetLocation = teleport.getPoint();
         int currentRegionId = localPlayer.getWorldLocation().getRegionID();
 
-        // --- THE ULTIMATE OVERRIDE ---
-        // If the player is standing within 10-15 tiles of the farming patch, or lands in Fossil Island, they have arrived.
-        // This bypasses any broken teleport region data.
-        if (isNearAnyFarmingPatch(location.getName(), currentRegionId)) {
+        // 1. UNIVERSAL ARRIVAL CHECK: The teleport object natively knows the exact coordinates of the patch!
+        if (targetLocation != null && areaCheck.isPlayerWithinArea(targetLocation, 20)) {
             return true;
         }
 
-        if ("Kastori".equals(location.getName()) && currentRegionId != 5167 && currentRegionId != 5423) return false;
-        if ("Auburnvale".equals(location.getName()) && currentRegionId != 5684) return false;
-        if ("Civitas illa Fortis".equals(location.getName()) && currentRegionId != 6459) return false;
-
-        WorldPoint targetLocation = teleport.getPoint();
-        if (targetLocation == null) return (currentRegionId == teleport.getRegionId());
-
-        boolean inCorrectRegion = (currentRegionId == teleport.getRegionId());
-        boolean nearTarget = areaCheck.isPlayerWithinArea(targetLocation, 20);
-
-        if (inCorrectRegion && nearTarget) return true;
-        if (!inCorrectRegion && nearTarget) return true;
-
-        return false;
-    }
-
-    private boolean isNearAnyFarmingPatch(String locationName, int currentRegionId) {
-        if (locationName == null) return false;
-
-        // Broad region catch-all for Fossil Island / Birdhouses
-        if (locationName.contains("Fossil Island") || locationName.contains("Birdhouse") || locationName.contains("Bird Houses") || locationName.contains("Birdhouse Run")) {
+        // 2. BACKUP CHECK: Fossil Island & Birdhouses (which sometimes lack a specific point)
+        if (location.getName() != null && (location.getName().contains("Fossil Island") || location.getName().contains("Birdhouse"))) {
             return currentRegionId == 14908 || currentRegionId == 14906 || currentRegionId == 14652 || currentRegionId == 14651 || currentRegionId == 15162 || currentRegionId == 15164;
         }
 
-        switch (locationName) {
-            case "Ardougne": return areaCheck.isPlayerWithinArea(new WorldPoint(2670, 3374, 0), 10);
-            case "Catherby": return areaCheck.isPlayerWithinArea(new WorldPoint(2813, 3463, 0), 10);
-            case "Falador": return areaCheck.isPlayerWithinArea(new WorldPoint(3058, 3307, 0), 10);
-            case "Civitas illa Fortis": return areaCheck.isPlayerWithinArea(new WorldPoint(1586, 3099, 0), 10);
-            case "Farming Guild": return areaCheck.isPlayerWithinArea(new WorldPoint(1238, 3726, 0), 15) || areaCheck.isPlayerWithinArea(new WorldPoint(1232, 3736, 0), 15) || areaCheck.isPlayerWithinArea(new WorldPoint(1243, 3759, 0), 15);
-            case "Brimhaven": return areaCheck.isPlayerWithinArea(new WorldPoint(2764, 3212, 0), 10);
-            case "Gnome Stronghold": return areaCheck.isPlayerWithinArea(new WorldPoint(2436, 3415, 0), 10) || areaCheck.isPlayerWithinArea(new WorldPoint(2475, 3446, 0), 10);
-            case "Tree Gnome Village": return areaCheck.isPlayerWithinArea(new WorldPoint(2485, 3184, 0), 15);
-            case "Lletya": return areaCheck.isPlayerWithinArea(new WorldPoint(2346, 3162, 0), 15);
-            case "Lumbridge": return areaCheck.isPlayerWithinArea(new WorldPoint(3193, 3231, 0), 10);
-            case "Taverley": return areaCheck.isPlayerWithinArea(new WorldPoint(2936, 3438, 0), 10);
-            case "Varrock": return areaCheck.isPlayerWithinArea(new WorldPoint(3229, 3459, 0), 10);
-            case "Seers Village": return areaCheck.isPlayerWithinArea(new WorldPoint(2667, 3526, 0), 10);
-            case "Yanille": return areaCheck.isPlayerWithinArea(new WorldPoint(2576, 3104, 0), 10);
-            case "Entrana": return areaCheck.isPlayerWithinArea(new WorldPoint(2811, 3337, 0), 10);
-            case "Aldarin": return areaCheck.isPlayerWithinArea(new WorldPoint(1365, 2937, 0), 10);
-            case "Auburnvale": return areaCheck.isPlayerWithinArea(new WorldPoint(1366, 3320, 0), 15);
-            case "Kastori": return areaCheck.isPlayerWithinArea(new WorldPoint(1352, 3023, 0), 15) || areaCheck.isPlayerWithinArea(new WorldPoint(1349, 3057, 0), 15);
-            default: return false;
-        }
+        return false;
     }
 
     public void adaptiveHighlighting(Location location, Teleport teleport, Graphics2D graphics, String patchType) {
@@ -163,51 +121,42 @@ public class NavigationHandler {
                 ("Civitas illa Fortis".equals(location.getName()) && currentRegionId == 6459) ||
                 ("Kastori".equals(location.getName()) && (currentRegionId == 5167 || currentRegionId == 5423));
         if (inLandingZone) return;
-        // ---------------------------------------------------------
-
-        WorldPoint targetLocation = teleport.getPoint();
-        Color leftColor = colorProvider.getLeftClickColorWithAlpha();
-
-        boolean inCorrectRegion = (currentRegionId == teleport.getRegionId());
-        boolean nearTarget = areaCheck.isPlayerWithinArea(targetLocation, 20);
-        boolean nearPatch = areaCheck.isPlayerWithinArea(targetLocation, 5);
-
-        if (nearPatch) {
-            patchHighlighter.highlightFarmingPatchesForLocation(location.getName(), graphics, patchType, leftColor, leftColor);
-            return;
-        }
-
-        if (inCorrectRegion && !nearTarget && isNearAnyFarmingPatch(location.getName(), currentRegionId)) {
-            patchHighlighter.highlightFarmingPatchesForLocation(location.getName(), graphics, patchType, leftColor, leftColor);
-            return;
-        }
 
         teleportHighlighter.highlightTeleportMethod(teleport, graphics);
     }
 
     public void gettingToLocation(Graphics2D graphics, Location location, String patchType) {
-        Teleport teleport = location.getSelectedTeleport();
+        Teleport teleport = location.getSelectedTeleport(patchType);
         if (teleport == null || isAtDestination || client.getLocalPlayer() == null) return;
 
         int currentRegionId = client.getLocalPlayer().getWorldLocation().getRegionID();
+        WorldPoint targetLocation = teleport.getPoint();
 
+        // STATE 3: Arrived at Patch (Handoff to FarmingStepHandler)
         if (shouldProceedToFarming(location, teleport)) {
             this.currentTeleportCase = 1;
+            this.teleportHandled = false; // Reset lock for safety
             isAtDestination = true;
-            plugin.clearLastMessage(); // Clears the Teleport message so the Farming instruction takes over cleanly
-        } else {
-            adaptiveHighlighting(location, teleport, graphics, patchType);
-
-            if ("Auburnvale".equals(location.getName()) && currentRegionId == 5684) plugin.addTextToInfoBox("Run South-West to the Auburnvale patch!");
-            else if ("Civitas illa Fortis".equals(location.getName()) && currentRegionId == 6459) plugin.addTextToInfoBox("Run to the Oasis Tree patch!");
-            else if ("Kastori".equals(location.getName()) && (currentRegionId == 5167 || currentRegionId == 5423)) plugin.addTextToInfoBox("Run North to the Kastori patches!");
-            else plugin.addTextToInfoBox(teleport.getDescription());
-
-            boolean inLandingZone = ("Auburnvale".equals(location.getName()) && currentRegionId == 5684) ||
-                    ("Civitas illa Fortis".equals(location.getName()) && currentRegionId == 6459) ||
-                    ("Kastori".equals(location.getName()) && (currentRegionId == 5167 || currentRegionId == 5423));
-            if (!inLandingZone) return;
+            plugin.clearLastMessage();
+            return;
         }
+
+        // STATE LOCK TRIGGER: Shrink radius to 40 so Catherby/Falador don't overlap, but Portal Nexuses still work
+        boolean isCloseToPatch = (targetLocation != null && areaCheck.isPlayerWithinArea(targetLocation, 40));
+        if (!teleportHandled && (currentRegionId == teleport.getRegionId() || isCloseToPatch)) {
+            this.currentTeleportCase = 1;
+            teleportHandled = true;
+        }
+
+        // STATE 2: Navigating (Teleport done, we are running)
+        if (teleportHandled) {
+            plugin.addTextToInfoBox("Run to the " + location.getName() + " patch!");
+            return; // Lock the UI. Ignore region boundaries and stop drawing teleport highlights.
+        }
+
+        // STATE 1: Needs Teleport
+        plugin.addTextToInfoBox(teleport.getDescription());
+        adaptiveHighlighting(location, teleport, graphics, patchType);
 
         switch (teleport.getCategory()) {
             case ITEM: handleItemTeleport(graphics, teleport, location, currentRegionId); break;
@@ -248,11 +197,6 @@ public class NavigationHandler {
                 }
             }
         }
-
-        if (!inLandingZone && currentRegionId == teleport.getRegionId()) {
-            this.currentTeleportCase = 1;
-            isAtDestination = true;
-        }
     }
 
     private void handlePortalNexusTeleport(Graphics2D graphics, Teleport teleport, Location location, int currentRegionId) {
@@ -266,7 +210,6 @@ public class NavigationHandler {
                     Widget widget = client.getWidget(Constants.INTERFACE_PORTAL_NEXUS, Constants.INTERFACE_PORTAL_NEXUS_CHILD);
                     widgetHighlighter.highlightDynamicComponent(graphics, widget, widgetHelper.getChildIndexPortalNexus(location.getName()));
                 }
-                if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
                 break;
         }
     }
@@ -285,7 +228,6 @@ public class NavigationHandler {
                 case "Farming Guild": widgetHighlighter.highlightDynamicComponent(graphics, widget, widgetHelper.getChildIndexSpiritTree("Farming Guild")); break;
             }
         }
-        if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
     }
 
     private void handleJewelleryBoxTeleport(Graphics2D graphics, Teleport teleport, Location location, int currentRegionId) {
@@ -300,7 +242,6 @@ public class NavigationHandler {
                     Widget widget = client.getWidget(Constants.INTERFACE_JEWELLERY_BOX_OPEN, Constants.WIDGET_JEWELLERY_BOX_CHILD);
                     widgetHighlighter.highlightDynamicComponent(graphics, widget, 10);
                 }
-                if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
                 break;
         }
     }
@@ -315,7 +256,6 @@ public class NavigationHandler {
                 } else {
                     Widget widget = client.getWidget(teleport.getInterfaceGroupId(), teleport.getInterfaceChildId());
                     widgetHighlighter.highlightDynamicComponent(graphics, widget, 1);
-                    if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
                 }
                 break;
         }
@@ -324,7 +264,6 @@ public class NavigationHandler {
     private void handleFairyRingTeleport(Graphics2D graphics, Teleport teleport, Location location, int currentRegionId) {
         Color leftColor = colorProvider.getLeftClickColorWithAlpha();
         gameObjectHighlighter.renderHighlight(graphics, Constants.FAIRY_RING_OBJECT_ID, leftColor);
-        if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
     }
 
     private void handleSpellbookTeleport(Graphics2D graphics, Teleport teleport, int currentRegionId) {
@@ -333,11 +272,9 @@ public class NavigationHandler {
             case REST:
             case INVENTORY:
                 widgetHighlighter.interfaceOverlay(widgetHelper.getSpellbookIconGroupId(), widgetHelper.getSpellbookIconChildId()).render(graphics);
-                if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
                 break;
             case SPELLBOOK:
                 widgetHighlighter.interfaceOverlay(teleport.getInterfaceGroupId(), teleport.getInterfaceChildId()).render(graphics);
-                if (currentRegionId == teleport.getRegionId()) { this.currentTeleportCase = 1; isAtDestination = true; }
                 break;
         }
     }
