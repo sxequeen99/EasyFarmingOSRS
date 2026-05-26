@@ -99,12 +99,10 @@ public class NavigationHandler {
         WorldPoint targetLocation = teleport.getPoint();
         int currentRegionId = localPlayer.getWorldLocation().getRegionID();
 
-        // 1. UNIVERSAL ARRIVAL CHECK: The teleport object natively knows the exact coordinates of the patch!
         if (targetLocation != null && areaCheck.isPlayerWithinArea(targetLocation, 20)) {
             return true;
         }
 
-        // 2. BACKUP CHECK: Fossil Island & Birdhouses (which sometimes lack a specific point)
         if (location.getName() != null && (location.getName().contains("Fossil Island") || location.getName().contains("Birdhouse"))) {
             return currentRegionId == 14908 || currentRegionId == 14906 || currentRegionId == 14652 || currentRegionId == 14651 || currentRegionId == 15162 || currentRegionId == 15164;
         }
@@ -116,7 +114,6 @@ public class NavigationHandler {
         if (client.getLocalPlayer() == null || teleport.getPoint() == null) return;
         int currentRegionId = client.getLocalPlayer().getWorldLocation().getRegionID();
 
-        // --- THIS KILL-SWITCH FIXES THE WHISTLE HIGHLIGHT BUG ---
         boolean inLandingZone = ("Auburnvale".equals(location.getName()) && currentRegionId == 5684) ||
                 ("Civitas illa Fortis".equals(location.getName()) && currentRegionId == 6459) ||
                 ("Kastori".equals(location.getName()) && (currentRegionId == 5167 || currentRegionId == 5423));
@@ -126,35 +123,39 @@ public class NavigationHandler {
     }
 
     public void gettingToLocation(Graphics2D graphics, Location location, String patchType) {
-        Teleport teleport = location.getSelectedTeleport(patchType);
+        // FIX: Temporarily wipe the Custom Run UI override so instructions perfectly match your Main Config
+        String ghostOverride = location.getOverrideTeleportEnumOption();
+        location.setOverrideTeleportEnumOption(null);
+
+        Teleport teleport = location.getSelectedTeleport();
+
+        // Put the override back immediately
+        location.setOverrideTeleportEnumOption(ghostOverride);
+
         if (teleport == null || isAtDestination || client.getLocalPlayer() == null) return;
 
         int currentRegionId = client.getLocalPlayer().getWorldLocation().getRegionID();
         WorldPoint targetLocation = teleport.getPoint();
 
-        // STATE 3: Arrived at Patch (Handoff to FarmingStepHandler)
         if (shouldProceedToFarming(location, teleport)) {
             this.currentTeleportCase = 1;
-            this.teleportHandled = false; // Reset lock for safety
+            this.teleportHandled = false;
             isAtDestination = true;
             plugin.clearLastMessage();
             return;
         }
 
-        // STATE LOCK TRIGGER: Shrink radius to 40 so Catherby/Falador don't overlap, but Portal Nexuses still work
         boolean isCloseToPatch = (targetLocation != null && areaCheck.isPlayerWithinArea(targetLocation, 40));
         if (!teleportHandled && (currentRegionId == teleport.getRegionId() || isCloseToPatch)) {
             this.currentTeleportCase = 1;
             teleportHandled = true;
         }
 
-        // STATE 2: Navigating (Teleport done, we are running)
         if (teleportHandled) {
             plugin.addTextToInfoBox("Run to the " + location.getName() + " patch!");
-            return; // Lock the UI. Ignore region boundaries and stop drawing teleport highlights.
+            return;
         }
 
-        // STATE 1: Needs Teleport
         plugin.addTextToInfoBox(teleport.getDescription());
         adaptiveHighlighting(location, teleport, graphics, patchType);
 

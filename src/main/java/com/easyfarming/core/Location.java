@@ -2,9 +2,7 @@ package com.easyfarming.core;
 
 import com.easyfarming.EasyFarmingConfig;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 public class Location {
@@ -13,10 +11,7 @@ public class Location {
     private List<Teleport> teleportOptions;
     private EasyFarmingConfig config;
     private final Function<EasyFarmingConfig, EasyFarmingConfig.OptionEnumTeleport> selectedTeleportFunction;
-
-    // NEW: Map to hold specific teleports for different patch types (e.g., Catherby Herb vs Fruit Tree)
-    private final Map<String, Function<EasyFarmingConfig, EasyFarmingConfig.OptionEnumTeleport>> typeSpecificTeleports;
-
+    /** When set (e.g. by a custom run), this overrides config-based selection. */
     private String overrideTeleportEnumOption;
 
     public Location(Function<EasyFarmingConfig, EasyFarmingConfig.OptionEnumTeleport> selectedTeleportFunction,
@@ -26,54 +21,45 @@ public class Location {
         this.name = name;
         this.farmLimps = farmLimps;
         this.teleportOptions = new ArrayList<>();
-        this.typeSpecificTeleports = new HashMap<>();
     }
 
+    /**
+     * Placeholder method to allow LocationData files to "register" patches.
+     * This prevents compilation errors in files like FossilIslandLocationData.
+     */
     public void addPatch(List<Integer> ids) {
-        // Placeholder so code compiles. Actual logic handled by overlays.
+        // This is a placeholder so the code compiles.
+        // The actual logic is handled by the Overlay and Checkers.
     }
 
     public void addTeleportOption(Teleport teleport) {
         teleportOptions.add(teleport);
     }
 
-    // NEW: Bind a specific config getter to a specific patch type
-    public void addTypeSpecificTeleport(String patchType, Function<EasyFarmingConfig, EasyFarmingConfig.OptionEnumTeleport> configFunction) {
-        this.typeSpecificTeleports.put(patchType, configFunction);
-    }
-
-    // UPGRADED: Now accepts patchType to look up the specific config!
-    public Teleport getSelectedTeleport(String patchType) {
-        String configEnumOption = null;
-
-        // 1. Custom Run Override Priority
-        if (overrideTeleportEnumOption != null) {
-            configEnumOption = overrideTeleportEnumOption;
-        }
-        // 2. Patch-Specific Config (e.g. Catherby Fruit Tree)
-        else if (config != null && patchType != null && typeSpecificTeleports.containsKey(patchType)) {
-            configEnumOption = typeSpecificTeleports.get(patchType).apply(config).name();
-        }
-        // 3. Default Config Fallback (e.g. Catherby Herb)
-        else if (config != null && selectedTeleportFunction != null) {
-            configEnumOption = selectedTeleportFunction.apply(config).name();
-        }
-
-        if (configEnumOption != null) {
+    public Teleport getSelectedTeleport() {
+        String configEnumOption = selectedTeleportFunction != null && config != null
+                ? selectedTeleportFunction.apply(config).name()
+                : null;
+        String selectedEnumOption = overrideTeleportEnumOption != null
+                ? overrideTeleportEnumOption
+                : configEnumOption;
+        if (selectedEnumOption != null) {
             for (Teleport teleport : teleportOptions) {
                 String opt = teleport.getEnumOption();
-                if (opt != null && configEnumOption.equalsIgnoreCase(opt)) {
+                if (opt != null && selectedEnumOption.equalsIgnoreCase(opt)) {
                     return teleport;
                 }
             }
+            if (overrideTeleportEnumOption != null && configEnumOption != null) {
+                for (Teleport teleport : teleportOptions) {
+                    String opt = teleport.getEnumOption();
+                    if (opt != null && configEnumOption.equalsIgnoreCase(opt)) {
+                        return teleport;
+                    }
+                }
+            }
         }
-
         return teleportOptions.isEmpty() ? null : teleportOptions.get(0);
-    }
-
-    // Backward compatibility for generic calls
-    public Teleport getSelectedTeleport() {
-        return getSelectedTeleport(null);
     }
 
     public void setOverrideTeleportEnumOption(String enumOption) {
@@ -84,6 +70,7 @@ public class Location {
         return overrideTeleportEnumOption;
     }
 
+    // Getters
     public String getName() { return name; }
     public Boolean getFarmLimps() { return farmLimps; }
     public List<Teleport> getTeleportOptions() { return teleportOptions; }

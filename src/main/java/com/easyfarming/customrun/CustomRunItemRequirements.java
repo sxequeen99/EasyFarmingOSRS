@@ -16,7 +16,6 @@ import java.util.Set;
 
 /**
  * Builds the item requirement map for a custom run.
- * Updated to ignore hidden side-panel settings and rely 100% on the Main Config.
  */
 public final class CustomRunItemRequirements {
 
@@ -52,16 +51,20 @@ public final class CustomRunItemRequirements {
 
             Set<Location> processedLocations = new HashSet<>();
 
-            // Loop through patches and grab teleports directly from the Main Config
             for (String patchType : patchTypes) {
                 Location loc = catalog.getLocationForPatch(name, patchType);
                 if (loc == null) continue;
 
                 if (!processedLocations.add(loc)) continue;
 
-                // FIX: Ignore the 'rl.getTeleportOption()' (the hidden side-panel ghost)
-                // and always pull from your Main Config panel.
+                // FIX: Temporarily wipe the Custom Run UI override so we strictly pull from the Main Config
+                String ghostOverride = loc.getOverrideTeleportEnumOption();
+                loc.setOverrideTeleportEnumOption(null);
+
                 Teleport teleport = loc.getSelectedTeleport();
+
+                // Put the override back immediately after checking
+                loc.setOverrideTeleportEnumOption(ghostOverride);
 
                 if (teleport != null) {
                     Map<Integer, Integer> req = teleport.getItemRequirements();
@@ -144,7 +147,6 @@ public final class CustomRunItemRequirements {
         for (Map.Entry<Integer, Integer> entry : from.entrySet()) {
             int itemId = entry.getKey();
             int quantity = entry.getValue();
-            // Capability check for capes and rings to ensure only 1 is ever packed
             if (itemId == ItemID.SKILLCAPE_CONSTRUCTION || itemId == ItemID.SKILLCAPE_CONSTRUCTION_TRIMMED || itemId == ItemID.SKILLCAPE_MAX ||
                     itemId == ItemID.HG_QUETZALWHISTLE_BASIC || itemId == ItemID.HG_QUETZALWHISTLE_ENHANCED || itemId == ItemID.HG_QUETZALWHISTLE_PERFECTED ||
                     itemId == ItemID.LUMBRIDGE_RING_MEDIUM || itemId == ItemID.LUMBRIDGE_RING_HARD || itemId == ItemID.LUMBRIDGE_RING_ELITE ||

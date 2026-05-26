@@ -4,7 +4,6 @@ import com.easyfarming.EasyFarmingConfig;
 import com.easyfarming.ItemRequirement;
 import com.easyfarming.core.Location;
 import com.easyfarming.core.Teleport;
-import com.easyfarming.customrun.PatchTypes; // NEW IMPORT
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ItemID;
 
@@ -42,10 +41,6 @@ public class CatherbyLocationData {
                 "Catherby",
                 true // farmLimps
         );
-
-        // NEW: Tell the Catherby profile to use the Fruit Tree config when doing a Fruit Tree run!
-        // IMPORTANT: Make sure 'enumOptionEnumCatherbyFruitTreeTeleport' matches your actual config method name.
-        location.addTypeSpecificTeleport(PatchTypes.FRUIT_TREE, EasyFarmingConfig::enumOptionEnumCatherbyFruitTreeTeleport);
 
         // Portal Nexus Catherby
         location.addTeleportOption(new Teleport(

@@ -338,7 +338,7 @@ public class FarmingStepHandler {
     private String getLocationNameFromRegionId(int id) {
         switch (id) {
             case 10290: case 10548: return "Ardougne";
-            case 11062: case 11317: return "Catherby";
+            case 11062: case 11317: case 11061: case 11318: return "Catherby";
             case 12083: case 11828: return "Falador";
             case 4922: return "Farming Guild";
             case 6967: return "Kourend";
@@ -352,7 +352,7 @@ public class FarmingStepHandler {
     private String getFruitTreeLocationNameFromRegionId(int id) {
         if (id == 5167 || id == 5423) return "Kastori";
         if (id == 4922) return "Farming Guild";
-        if (id == 11317 || id == 11062) return "Catherby";
+        if (id == 11317 || id == 11062 || id == 11061 || id == 11318) return "Catherby";
         if (id == 11058) return "Brimhaven";
         if (id == 9265) return "Lletya";
         if (id == 9781) return "Gnome Stronghold";
@@ -371,7 +371,7 @@ public class FarmingStepHandler {
 
     private String getTreeLocationNameFromRegionId(int id) {
         if (id == 5427 || id == 5684 || id == 5428 || id == 5683) return "Auburnvale";
-        if (id == 11828) return "Falador";
+        if (id == 11828 || id == 12083) return "Falador";
         if (id == 4922) return "Farming Guild";
         if (id == 12594 || id == 12850) return "Lumbridge";
         if (id == 12854 || id == 12853) return "Varrock";
